@@ -1,3 +1,6 @@
+import React, { useEffect, useRef, useState } from 'react';
+// webtorrent removed from imports, using window.WebTorrent
+
 // WebRTC-only client initialized dynamically
 let client;
 
@@ -11,19 +14,21 @@ const TorrentPlayer = ({ magnetUri }) => {
     useEffect(() => {
         let mounted = true;
 
-        const initTorrent = async () => {
+        const startTorrent = () => {
             if (!magnetUri) return;
+            if (!window.WebTorrent) {
+                if (mounted) setError("WebTorrent library not loaded from CDN.");
+                return;
+            }
 
             try {
-                // Dynamic import to avoid build issues
+                // Use global WebTorrent from CDN
                 if (!client) {
-                    const WebTorrent = (await import('webtorrent')).default;
-                    client = new WebTorrent();
+                    client = new window.WebTorrent();
                 }
 
                 if (!mounted) return;
 
-                // Check if duplicate
                 const existingTorrent = client.get(magnetUri);
                 if (existingTorrent) {
                     streamTorrent(existingTorrent);
@@ -38,14 +43,14 @@ const TorrentPlayer = ({ magnetUri }) => {
                         streamTorrent(torrent);
                     }
                 });
-
             } catch (err) {
-                console.error("Failed to load WebTorrent:", err);
-                if (mounted) setError("Failed to initialize torrent client.");
+                console.error("Torrent Error:", err);
+                if (mounted) setError("Failed to initialize torrent.");
             }
         };
 
-        initTorrent();
+        // Small timeout to ensure script is fully ready
+        setTimeout(startTorrent, 500);
 
         return () => {
             mounted = false;
