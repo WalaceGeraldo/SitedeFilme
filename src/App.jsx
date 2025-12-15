@@ -68,7 +68,7 @@ const Home = () => {
       <Hero items={trending.slice(0, 10)} />
       <div className="-mt-20 relative z-10 space-y-4">
         {/* Local Content First (User's Favorites) */}
-        {localRecommended.length > 0 && <MovieRow title="Minha Lista" movies={localRecommended} />}
+
 
         {/* API Content */}
         <MovieRow title="Em Alta" movies={trending} />
