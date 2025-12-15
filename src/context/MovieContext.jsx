@@ -41,10 +41,30 @@ export const MovieProvider = ({ children }) => {
 
     const importCloud = async (url, name) => {
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Falha ao baixar nuvem');
+            // Helper to fetch with retries/proxy
+            const fetchWithProxy = async (targetUrl) => {
+                // Return HTTPS directly if possible, else use proxy
+                const isHttps = targetUrl.startsWith('https://');
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
-            const data = await response.json();
+                try {
+                    // Try direct if HTTPS
+                    if (isHttps) {
+                        const maxTime = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+                        const res = await Promise.race([fetch(targetUrl), maxTime]);
+                        if (res.ok) return res.json();
+                    }
+                } catch (e) {
+                    console.log("Direct fetch failed, trying proxy...", e);
+                }
+
+                // Fallback to proxy (solves Mixed Content and CORS)
+                const res = await fetch(proxyUrl);
+                if (!res.ok) throw new Error('Falha no Proxy');
+                return res.json();
+            };
+
+            const data = await fetchWithProxy(url);
             const items = Array.isArray(data) ? data : (data.results || []); // Handle array or { results: [] }
 
             if (items.length === 0) throw new Error('Nuvem vazia');
