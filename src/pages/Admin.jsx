@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useMovies } from '../context/MovieContext';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Edit2, Search, DownloadCloud, Loader2 } from 'lucide-react';
+import { ChevronLeft, Edit2, Search, DownloadCloud, Loader2, Upload } from 'lucide-react';
 
 const TMDB_API_KEY = "70f37390ba1316b495743e24196beb71";
 
