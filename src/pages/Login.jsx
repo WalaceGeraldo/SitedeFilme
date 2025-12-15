@@ -21,7 +21,7 @@ const Login = () => {
         if (success) {
             navigate('/admin');
         } else {
-            setError('Credenciais inválidas. Tente admin@youcine.com / 123456');
+            setError('Credenciais inválidas. Tente admin@sepflix.com / 123456');
         }
     };
 
@@ -31,7 +31,7 @@ const Login = () => {
 
             <Link to="/" className="fixed top-8 left-8 z-[100] flex items-center gap-2 text-white hover:text-gray-300 transition cursor-pointer no-underline group">
                 <ArrowLeft className="w-8 h-8 group-hover:-translate-x-1 transition" />
-                <span className="text-red-600 text-4xl font-bold tracking-tighter">YOUCINE</span>
+                <span className="text-red-600 text-4xl font-bold tracking-tighter">SEPFLIX</span>
             </Link>
 
             <button

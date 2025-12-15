@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         // Check localStorage on mount
-        const storedUser = localStorage.getItem('youcine_user');
+        const storedUser = localStorage.getItem('sepflix_user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }) => {
 
     const login = (email, password) => {
         // Simple mock authentication
-        if (email === 'admin@youcine.com' && password === '123456') {
+        if (email === 'admin@sepflix.com' && password === '123456') {
             const userData = { email, name: 'Admin', role: 'admin' };
             setUser(userData);
-            localStorage.setItem('youcine_user', JSON.stringify(userData));
+            localStorage.setItem('sepflix_user', JSON.stringify(userData));
             return true;
         }
         return false;
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem('youcine_user');
+        localStorage.removeItem('sepflix_user');
     };
 
     return (

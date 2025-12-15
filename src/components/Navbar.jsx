@@ -20,7 +20,7 @@ const Navbar = ({ onSearch, searchQuery }) => {
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-8">
                     <Link to="/">
-                        <h1 className="text-red-600 text-3xl font-bold tracking-tighter cursor-pointer">YOUCINE</h1>
+                        <h1 className="text-red-600 text-3xl font-bold tracking-tighter cursor-pointer">SEPFLIX</h1>
                     </Link>
 
                     {/* Desktop Menu */}
