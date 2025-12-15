@@ -13,4 +13,7 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
+  define: {
+    global: 'globalThis',
+  },
 })

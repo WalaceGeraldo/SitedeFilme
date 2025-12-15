@@ -1,8 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import WebTorrent from 'webtorrent';
-
-// WebRTC-only client
-const client = new WebTorrent();
+// WebRTC-only client initialized dynamically
+let client;
 
 const TorrentPlayer = ({ magnetUri }) => {
     const videoRef = useRef(null);
@@ -12,25 +9,48 @@ const TorrentPlayer = ({ magnetUri }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!magnetUri) return;
+        let mounted = true;
 
-        // Check if duplicate
-        const existingTorrent = client.get(magnetUri);
-        if (existingTorrent) {
-            streamTorrent(existingTorrent);
-            return;
-        }
+        const initTorrent = async () => {
+            if (!magnetUri) return;
 
-        setStatus('Connecting to peers...');
+            try {
+                // Dynamic import to avoid build issues
+                if (!client) {
+                    const WebTorrent = (await import('webtorrent')).default;
+                    client = new WebTorrent();
+                }
 
-        client.add(magnetUri, (torrent) => {
-            setStatus('Torrent added. Finding video file...');
-            streamTorrent(torrent);
-        });
+                if (!mounted) return;
+
+                // Check if duplicate
+                const existingTorrent = client.get(magnetUri);
+                if (existingTorrent) {
+                    streamTorrent(existingTorrent);
+                    return;
+                }
+
+                setStatus('Connecting to peers...');
+
+                client.add(magnetUri, (torrent) => {
+                    if (mounted) {
+                        setStatus('Torrent added. Finding video file...');
+                        streamTorrent(torrent);
+                    }
+                });
+
+            } catch (err) {
+                console.error("Failed to load WebTorrent:", err);
+                if (mounted) setError("Failed to initialize torrent client.");
+            }
+        };
+
+        initTorrent();
 
         return () => {
+            mounted = false;
             // Cleanup logic if needed (e.g. remove torrent to save memory)
-            // client.remove(magnetUri);
+            // if (client) client.remove(magnetUri);
         };
     }, [magnetUri]);
 
