@@ -4,7 +4,16 @@ import { MOVIE_DATA as INITIAL_DATA } from '../data/movies';
 const MovieContext = createContext();
 
 export const MovieProvider = ({ children }) => {
-    const [movies, setMovies] = useState(INITIAL_DATA);
+    // Initialize from localStorage or fallback to default data
+    const [movies, setMovies] = useState(() => {
+        const savedMovies = localStorage.getItem('my_cine_movies');
+        return savedMovies ? JSON.parse(savedMovies) : INITIAL_DATA;
+    });
+
+    // Save to localStorage whenever movies change
+    React.useEffect(() => {
+        localStorage.setItem('my_cine_movies', JSON.stringify(movies));
+    }, [movies]);
 
     const addMovie = (newMovie) => {
         console.log("Adding movie:", newMovie);
