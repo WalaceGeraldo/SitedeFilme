@@ -6,12 +6,16 @@ import { ChevronLeft, Edit2, Search, DownloadCloud, Loader2 } from 'lucide-react
 const TMDB_API_KEY = "70f37390ba1316b495743e24196beb71";
 
 const Admin = () => {
-    const { movies, addMovie, updateMovie, addMovies } = useMovies();
+    const { movies, addMovie, updateMovie, addMovies, clouds, importCloud, removeCloud } = useMovies();
     const navigate = useNavigate();
 
     const [editingId, setEditingId] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+
+    // Cloud State
+    const [cloudUrl, setCloudUrl] = useState('');
+    const [cloudName, setCloudName] = useState('');
 
     const [formData, setFormData] = useState({
         title: '',
@@ -61,6 +65,22 @@ const Admin = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleCloudImport = async () => {
+        if (!cloudUrl) return alert("Digite a URL da nuvem.");
+
+        setIsImporting(true);
+        try {
+            const count = await importCloud(cloudUrl, cloudName);
+            alert(`${count} títulos importados da nuvem com sucesso!`);
+            setCloudUrl('');
+            setCloudName('');
+        } catch (error) {
+            alert("Erro ao importar nuvem: " + error.message);
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     const importPopularContent = async () => {
@@ -176,6 +196,57 @@ const Admin = () => {
                 >
                     <ChevronLeft /> Voltar para Home
                 </button>
+            </div>
+
+            {/* Cloud Management Section */}
+            <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-800 mb-8">
+                <h2 className="text-xl font-bold mb-4 text-blue-500 flex items-center gap-2">
+                    <DownloadCloud size={24} /> Gerenciar Nuvens (My Family Cinema Style)
+                </h2>
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <input
+                        type="text"
+                        placeholder="Nome da Nuvem (Opcional)"
+                        value={cloudName}
+                        onChange={(e) => setCloudName(e.target.value)}
+                        className="bg-gray-800 text-white rounded p-3 border border-gray-700 md:w-1/4"
+                    />
+                    <input
+                        type="text"
+                        placeholder="Link da Nuvem (JSON URL)"
+                        value={cloudUrl}
+                        onChange={(e) => setCloudUrl(e.target.value)}
+                        className="bg-gray-800 text-white rounded p-3 border border-gray-700 flex-1"
+                    />
+                    <button
+                        onClick={handleCloudImport}
+                        disabled={isImporting}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {isImporting ? <Loader2 className="animate-spin" /> : 'Importar Nuvem'}
+                    </button>
+                </div>
+
+                {/* Active Clouds List */}
+                {clouds.length > 0 && (
+                    <div className="grid gap-3">
+                        {clouds.map(cloud => (
+                            <div key={cloud.id} className="bg-gray-800 p-4 rounded flex justify-between items-center border border-gray-700">
+                                <div>
+                                    <h3 className="font-bold text-white">{cloud.name}</h3>
+                                    <p className="text-xs text-gray-400">{cloud.url}</p>
+                                    <span className="text-xs text-green-500">{cloud.count} títulos • Adicionado em {cloud.date}</span>
+                                </div>
+                                <button
+                                    onClick={() => removeCloud(cloud.id)}
+                                    className="text-red-500 hover:text-red-400 text-sm hover:underline"
+                                >
+                                    Remover
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

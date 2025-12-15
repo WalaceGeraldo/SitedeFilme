@@ -1,6 +1,19 @@
 import React, { createContext, useState, useContext } from 'react';
 import { MOVIE_DATA as INITIAL_DATA } from '../data/movies';
 
+// Helper to validate and normalize cloud data
+const normalizeMovieData = (item) => ({
+    id: Date.now() + Math.random(), // Temporary ID generation
+    title: item.title || item.name || 'Sem Título',
+    cover: item.cover || item.poster || '',
+    backdrop: item.backdrop || item.cover || '',
+    description: item.description || item.overview || 'Sem descrição.',
+    year: item.year || new Date().getFullYear().toString(),
+    videoUrl: item.videoUrl || item.magnet || '',
+    type: item.type || 'movie',
+    category: item.category || 'Nuvem'
+});
+
 const MovieContext = createContext();
 
 export const MovieProvider = ({ children }) => {
@@ -10,10 +23,64 @@ export const MovieProvider = ({ children }) => {
         return savedMovies ? JSON.parse(savedMovies) : INITIAL_DATA;
     });
 
+    // Clouds State
+    const [clouds, setClouds] = useState(() => {
+        const savedClouds = localStorage.getItem('my_cine_clouds');
+        return savedClouds ? JSON.parse(savedClouds) : [];
+    });
+
     // Save to localStorage whenever movies change
     React.useEffect(() => {
         localStorage.setItem('my_cine_movies', JSON.stringify(movies));
     }, [movies]);
+
+    // Save Clouds to localStorage
+    React.useEffect(() => {
+        localStorage.setItem('my_cine_clouds', JSON.stringify(clouds));
+    }, [clouds]);
+
+    const importCloud = async (url, name) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Falha ao baixar nuvem');
+
+            const data = await response.json();
+            const items = Array.isArray(data) ? data : (data.results || []); // Handle array or { results: [] }
+
+            if (items.length === 0) throw new Error('Nuvem vazia');
+
+            const newMovies = items.map(normalizeMovieData);
+
+            // Add movies
+            setMovies(prev => {
+                const existingTitles = new Set(prev.map(m => m.title.toLowerCase()));
+                const uniqueNew = newMovies.filter(m => !existingTitles.has(m.title.toLowerCase()));
+                return [...prev, ...uniqueNew];
+            });
+
+            // Add Cloud to list
+            const newCloud = {
+                id: Date.now(),
+                name: name || `Nuvem ${clouds.length + 1}`,
+                url,
+                count: newMovies.length,
+                date: new Date().toLocaleDateString()
+            };
+
+            setClouds(prev => [...prev, newCloud]);
+            return newMovies.length;
+
+        } catch (error) {
+            console.error("Erro na nuvem:", error);
+            throw error;
+        }
+    };
+
+    const removeCloud = (id) => {
+        setClouds(prev => prev.filter(c => c.id !== id));
+        // Optional: We could remove the movies associated with this cloud, but for now we keep them.
+        // Implementing removal would require tracking source_id on movies.
+    };
 
     const addMovie = (newMovie) => {
         console.log("Adding movie:", newMovie);
@@ -48,7 +115,7 @@ export const MovieProvider = ({ children }) => {
     };
 
     return (
-        <MovieContext.Provider value={{ movies, addMovie, updateMovie, addMovies }}>
+        <MovieContext.Provider value={{ movies, clouds, addMovie, updateMovie, addMovies, importCloud, removeCloud }}>
             {children}
         </MovieContext.Provider>
     );
