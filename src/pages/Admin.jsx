@@ -6,7 +6,7 @@ import { ChevronLeft, Edit2, Search, DownloadCloud, Loader2 } from 'lucide-react
 const TMDB_API_KEY = "70f37390ba1316b495743e24196beb71";
 
 const Admin = () => {
-    const { movies, addMovie, updateMovie, addMovies, clouds, importCloud, removeCloud } = useMovies();
+    const { movies, addMovie, updateMovie, addMovies, clouds, importCloud, importCloudData, removeCloud } = useMovies();
     const navigate = useNavigate();
 
     const [editingId, setEditingId] = useState(null);
@@ -16,6 +16,9 @@ const Admin = () => {
     // Cloud State
     const [cloudUrl, setCloudUrl] = useState('');
     const [cloudName, setCloudName] = useState('');
+
+    // File Upload Ref
+    const fileInputRef = useRef(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -81,6 +84,26 @@ const Admin = () => {
         } finally {
             setIsImporting(false);
         }
+    };
+
+    const handleFileUpload = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target.result;
+                const json = JSON.parse(text);
+                const count = importCloudData(json, file.name.replace(/\.[^/.]+$/, ""));
+                alert(`${count} títulos importados do arquivo local!`);
+            } catch (error) {
+                alert("Erro ao ler arquivo: Certifique-se que é um JSON válido. (Se for .dat, tente renomear para .json)");
+                console.error(error);
+            }
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsText(file);
     };
 
     const importPopularContent = async () => {
@@ -223,7 +246,23 @@ const Admin = () => {
                         disabled={isImporting}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition disabled:opacity-50 flex items-center gap-2"
                     >
-                        {isImporting ? <Loader2 className="animate-spin" /> : 'Importar Nuvem'}
+                        {isImporting ? <Loader2 className="animate-spin" /> : 'Importar Link'}
+                    </button>
+
+                    {/* Hidden File Input and Upload Button */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept=".json,.dat,.txt"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        style={{ display: 'none' }}
+                    />
+                    <button
+                        onClick={() => fileInputRef.current.click()}
+                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition flex items-center gap-2"
+                    >
+                        <Upload size={20} /> Carregar Arquivo
                     </button>
                 </div>
 

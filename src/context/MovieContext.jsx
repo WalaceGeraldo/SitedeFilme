@@ -43,57 +43,89 @@ export const MovieProvider = ({ children }) => {
         try {
             // Helper to fetch with retries/proxy
             const fetchWithProxy = async (targetUrl) => {
-                // Return HTTPS directly if possible, else use proxy
-                const isHttps = targetUrl.startsWith('https://');
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
                 try {
-                    // Try direct if HTTPS
-                    if (isHttps) {
-                        const maxTime = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-                        const res = await Promise.race([fetch(targetUrl), maxTime]);
-                        if (res.ok) return res.json();
+                    // 1. Try Direct Fetch (if HTTPS)
+                    if (targetUrl.startsWith('https://')) {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+                        try {
+                            const res = await fetch(targetUrl, { signal: controller.signal });
+                            clearTimeout(timeoutId);
+                            if (res.ok) {
+                                const text = await res.text();
+                                try { return JSON.parse(text); } catch (e) { /* Not JSON */ }
+                            }
+                        } catch (e) { /* Ignore direct fetch errors */ }
                     }
-                } catch (e) {
-                    console.log("Direct fetch failed, trying proxy...", e);
-                }
 
-                // Fallback to proxy (solves Mixed Content and CORS)
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error('Falha no Proxy');
-                return res.json();
+                    // 2. Try Proxy (allorigins/get returns JSON with 'contents')
+                    // Using /get instead of /raw to handle status codes better
+                    const res = await fetch(proxyUrl);
+                    if (!res.ok) throw new Error(`Erro HTTP: ${res.status}`);
+
+                    const proxyData = await res.json();
+
+                    if (!proxyData.contents) throw new Error('Proxy não retornou conteúdo');
+
+                    // Try to parse the contents as JSON
+                    try {
+                        return JSON.parse(proxyData.contents);
+                    } catch (parseError) {
+                        console.error("Conteúdo recebido não é JSON:", proxyData.contents.substring(0, 100));
+                        throw new Error('O link não contém um JSON válido (Filmes). Verifique o link.');
+                    }
+
+                } catch (e) {
+                    console.error("Erro no Proxy:", e);
+                    throw e;
+                }
             };
 
             const data = await fetchWithProxy(url);
-            const items = Array.isArray(data) ? data : (data.results || []); // Handle array or { results: [] }
-
-            if (items.length === 0) throw new Error('Nuvem vazia');
-
-            const newMovies = items.map(normalizeMovieData);
-
-            // Add movies
-            setMovies(prev => {
-                const existingTitles = new Set(prev.map(m => m.title.toLowerCase()));
-                const uniqueNew = newMovies.filter(m => !existingTitles.has(m.title.toLowerCase()));
-                return [...prev, ...uniqueNew];
-            });
-
-            // Add Cloud to list
-            const newCloud = {
-                id: Date.now(),
-                name: name || `Nuvem ${clouds.length + 1}`,
-                url,
-                count: newMovies.length,
-                date: new Date().toLocaleDateString()
-            };
-
-            setClouds(prev => [...prev, newCloud]);
-            return newMovies.length;
-
+            return processCloudData(data, name, url);
         } catch (error) {
             console.error("Erro na nuvem:", error);
             throw error;
         }
+    };
+
+    const importCloudData = (data, name) => {
+        try {
+            return processCloudData(data, name, 'Arquivo Local');
+        } catch (error) {
+            console.error("Erro no arquivo:", error);
+            throw error;
+        }
+    };
+
+    const processCloudData = (data, name, source) => {
+        // Normalize data (support array or object with results)
+        const items = Array.isArray(data) ? data : (data.results || []);
+
+        if (!items || items.length === 0) throw new Error('Nuvem vazia ou formato incorreto');
+
+        const newMovies = items.map(normalizeMovieData);
+
+        // Add movies
+        setMovies(prev => {
+            const existingTitles = new Set(prev.map(m => m.title.toLowerCase()));
+            const uniqueNew = newMovies.filter(m => !existingTitles.has(m.title.toLowerCase()));
+            return [...prev, ...uniqueNew];
+        });
+
+        // Add Cloud to list
+        const newCloud = {
+            id: Date.now(),
+            name: name || `Nuvem ${clouds.length + 1}`,
+            url: source,
+            count: newMovies.length,
+            date: new Date().toLocaleDateString()
+        };
+
+        setClouds(prev => [...prev, newCloud]);
+        return newMovies.length;
     };
 
     const removeCloud = (id) => {
@@ -135,7 +167,7 @@ export const MovieProvider = ({ children }) => {
     };
 
     return (
-        <MovieContext.Provider value={{ movies, clouds, addMovie, updateMovie, addMovies, importCloud, removeCloud }}>
+        <MovieContext.Provider value={{ movies, clouds, addMovie, updateMovie, addMovies, importCloud, importCloudData, removeCloud }}>
             {children}
         </MovieContext.Provider>
     );
