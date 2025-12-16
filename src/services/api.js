@@ -33,5 +33,8 @@ export const api = {
     },
     search: async (query) => {
         return await fetchFromTMDB(`/search/multi?query=${encodeURIComponent(query)}`);
+    },
+    getSeasonDetails: async (id, seasonNumber) => {
+        return await fetchFromTMDB(`/tv/${id}/season/${seasonNumber}`);
     }
 };

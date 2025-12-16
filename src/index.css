@@ -6,6 +6,26 @@ body {
   color: white;
   margin: 0;
   font-family: sans-serif;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+  overflow-x: hidden;
+  /* Evita rolagem horizontal indesejada */
+}
+
+/* Esconder barra de rolagem (Chrome/Safari/Opera) */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+/* Garantir que todos os elementos também escondam se necessário */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
 }
 
 /* Esconder barra de rolagem (Chrome/Safari) */
