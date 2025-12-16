@@ -6,7 +6,7 @@ import { ChevronLeft, Edit2, Search, DownloadCloud, Loader2, Upload } from 'luci
 const TMDB_API_KEY = "70f37390ba1316b495743e24196beb71";
 
 const Admin = () => {
-    const { movies, addMovie, updateMovie, addMovies, clouds, importCloud, importCloudData, removeCloud } = useMovies();
+    const { movies, addMovie, updateMovie, addMovies, clouds, importCloud, importCloudData, removeCloud, addons, addAddon, removeAddon } = useMovies();
     const navigate = useNavigate();
 
     const [editingId, setEditingId] = useState(null);
@@ -16,6 +16,10 @@ const Admin = () => {
     // Cloud State
     const [cloudUrl, setCloudUrl] = useState('');
     const [cloudName, setCloudName] = useState('');
+
+    // Addon State
+    const [addonUrl, setAddonUrl] = useState('');
+    const [addonName, setAddonName] = useState('');
 
     // File Upload Ref
     const fileInputRef = useRef(null);
@@ -68,6 +72,15 @@ const Admin = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleAddAddon = () => {
+        console.log("Adding addon:", addonName, addonUrl);
+        if (!addonUrl) return alert("Digite a URL do Addon.");
+        addAddon(addonUrl, addonName);
+        setAddonUrl('');
+        setAddonName('');
+        alert("Addon adicionado com sucesso!");
     };
 
     const handleCloudImport = async () => {
@@ -219,6 +232,55 @@ const Admin = () => {
                 >
                     <ChevronLeft /> Voltar para Home
                 </button>
+            </div>
+
+            {/* Addon Management Section */}
+            <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-800 mb-8">
+                <h2 className="text-xl font-bold mb-4 text-purple-500 flex items-center gap-2">
+                    <DownloadCloud size={24} /> Gerenciar Addons (Stremio)
+                </h2>
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    <input
+                        type="text"
+                        placeholder="Nome do Addon (Ex: Torrentio)"
+                        value={addonName}
+                        onChange={(e) => setAddonName(e.target.value)}
+                        className="bg-gray-800 text-white rounded p-3 border border-gray-700 md:w-1/4"
+                    />
+                    <input
+                        type="text"
+                        placeholder="URL do Addon (Ex: https://torrentio.strem.fun)"
+                        value={addonUrl}
+                        onChange={(e) => setAddonUrl(e.target.value)}
+                        className="bg-gray-800 text-white rounded p-3 border border-gray-700 flex-1"
+                    />
+                    <button
+                        onClick={handleAddAddon}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded transition flex items-center gap-2"
+                    >
+                        Adicionar
+                    </button>
+                </div>
+
+                {/* Active Addons List */}
+                {addons.length > 0 && (
+                    <div className="grid gap-3">
+                        {addons.map(addon => (
+                            <div key={addon.id} className="bg-gray-800 p-4 rounded flex justify-between items-center border border-gray-700">
+                                <div>
+                                    <h3 className="font-bold text-white">{addon.name}</h3>
+                                    <p className="text-xs text-gray-400">{addon.url}</p>
+                                </div>
+                                <button
+                                    onClick={() => removeAddon(addon.id)}
+                                    className="text-red-500 hover:text-red-400 text-sm hover:underline"
+                                >
+                                    Remover
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Cloud Management Section */}

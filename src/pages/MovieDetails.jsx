@@ -7,7 +7,7 @@ import { api } from '../services/api';
 
 const MovieDetails = () => {
     const { id, type } = useParams(); // type is optional (movie/series)
-    const { movies } = useMovies();
+    const { movies, addons } = useMovies();
     const [isPlaying, setIsPlaying] = useState(false);
     const [movie, setMovie] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -15,6 +15,8 @@ const MovieDetails = () => {
     const [selectedSeason, setSelectedSeason] = useState(1);
     const [episodes, setEpisodes] = useState([]);
     const [selectedEpisode, setSelectedEpisode] = useState(null);
+    const [streams, setStreams] = useState([]);
+    const [showSources, setShowSources] = useState(false);
 
     useEffect(() => {
         const loadMovie = async () => {
@@ -47,6 +49,7 @@ const MovieDetails = () => {
 
                     const formattedMovie = {
                         id: data.id,
+                        imdb_id: data.external_ids?.imdb_id,
                         title: data.title || data.name,
                         description: data.overview || 'Sem descrição.',
                         cover: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : '',
@@ -60,9 +63,19 @@ const MovieDetails = () => {
 
                     // If it's a series, setup seasons
                     if (apiType === 'tv' || data.number_of_seasons > 0) {
-                        const seasonList = Array.from({ length: data.number_of_seasons }, (_, i) => i + 1);
+                        const numSeasons = data.number_of_seasons || 1;
+                        const seasonList = Array.from({ length: numSeasons }, (_, i) => i + 1);
                         setSeasons(seasonList);
                         setSelectedSeason(1);
+                    }
+
+                    // Fetch Streams if IMDB ID exists
+                    if (formattedMovie.imdb_id || data.external_ids?.imdb_id) {
+                        const imdbId = formattedMovie.imdb_id || data.external_ids?.imdb_id;
+                        import('../services/stremio').then(async ({ stremioService }) => {
+                            const fetchedStreams = await stremioService.getStreams(apiType === 'tv' ? 'series' : 'movie', imdbId, addons);
+                            setStreams(fetchedStreams);
+                        });
                     }
                 }
             } catch (error) {
@@ -117,6 +130,17 @@ const MovieDetails = () => {
         } else {
             alert("Trailer indisponível no momento.");
         }
+    };
+
+    const handleWatchStream = (stream) => {
+        let url = stream.url;
+        if (stream.infoHash) {
+            url = `magnet:?xt=urn:btih:${stream.infoHash}&dn=${encodeURIComponent(stream.title)}`;
+        }
+
+        // Setup the movie videoUrl to this stream and play
+        setMovie(prev => ({ ...prev, videoUrl: url }));
+        setIsPlaying(true);
     };
 
     const isTorrent = movie.videoUrl?.startsWith('magnet:') || movie.videoUrl?.endsWith('.torrent');
@@ -192,7 +216,37 @@ const MovieDetails = () => {
                             <button className="flex items-center gap-2 bg-gray-600/60 text-white px-8 py-3 rounded font-bold hover:bg-opacity-50 transition backdrop-blur-sm text-lg">
                                 <Info className="w-6 h-6" /> Mais Informações
                             </button>
+
+                            {/* Stremio Sources Action */}
+                            {streams.length > 0 && (
+                                <button
+                                    onClick={() => setShowSources(!showSources)}
+                                    className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition transform hover:scale-105 text-lg"
+                                >
+                                    <Play className="w-6 h-6 fill-white" />
+                                    Ver Fontes ({streams.length})
+                                </button>
+                            )}
                         </div>
+
+                        {/* Sources List */}
+                        {showSources && streams.length > 0 && (
+                            <div className="p-4 bg-gray-800 rounded-lg max-w-xl max-h-[300px] overflow-y-auto mt-4 custom-scrollbar shadow-lg border border-gray-700">
+                                <h3 className="text-lg font-bold mb-4 sticky top-0 bg-gray-800 py-2 border-b border-gray-700">Opções de Reprodução (Torrentio)</h3>
+                                <div className="space-y-2">
+                                    {streams.map((stream, idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => handleWatchStream(stream)}
+                                            className="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex flex-col gap-1 transition"
+                                        >
+                                            <div className="font-bold text-green-400">{stream.title.split('\n')[0]}</div>
+                                            <div className="text-xs text-gray-400">{stream.name} - {stream.title.split('\n')[1] || ''}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Seasons & Episodes Section */}

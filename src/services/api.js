@@ -26,7 +26,7 @@ export const api = {
         return await fetchFromTMDB(`/movie/top_rated`);
     },
     getDetails: async (type, id) => {
-        return await fetchFromTMDB(`/${type}/${id}`);
+        return await fetchFromTMDB(`/${type}/${id}?append_to_response=external_ids`);
     },
     getCast: async (type, id) => {
         return await fetchFromTMDB(`/${type}/${id}/credits`);

@@ -134,6 +134,39 @@ export const MovieProvider = ({ children }) => {
         // Implementing removal would require tracking source_id on movies.
     };
 
+    // Addons State
+    const [addons, setAddons] = useState(() => {
+        const savedAddons = localStorage.getItem('my_cine_addons');
+        return savedAddons ? JSON.parse(savedAddons) : [
+            { id: 'torrentio', name: 'Torrentio', url: 'https://torrentio.strem.fun' }
+        ];
+    });
+
+    // Save Addons to localStorage
+    React.useEffect(() => {
+        localStorage.setItem('my_cine_addons', JSON.stringify(addons));
+    }, [addons]);
+
+    const addAddon = (url, name) => {
+        // Sanitize URL: Remove 'manifest.json' and trailing slashes
+        let cleanUrl = url.trim();
+        if (cleanUrl.endsWith('/manifest.json')) {
+            cleanUrl = cleanUrl.replace('/manifest.json', '');
+        }
+        cleanUrl = cleanUrl.replace(/\/+$/, ''); // Remove trailing slash
+
+        const newAddon = {
+            id: Date.now(),
+            name: name || `Addon ${addons.length + 1}`,
+            url: cleanUrl
+        };
+        setAddons(prev => [...prev, newAddon]);
+    };
+
+    const removeAddon = (id) => {
+        setAddons(prev => prev.filter(addon => addon.id !== id));
+    };
+
     const addMovie = (newMovie) => {
         console.log("Adding movie:", newMovie);
         // Generate a new ID based on the last ID
@@ -167,7 +200,7 @@ export const MovieProvider = ({ children }) => {
     };
 
     return (
-        <MovieContext.Provider value={{ movies, clouds, addMovie, updateMovie, addMovies, importCloud, importCloudData, removeCloud }}>
+        <MovieContext.Provider value={{ movies, clouds, addons, addMovie, updateMovie, addMovies, importCloud, importCloudData, removeCloud, addAddon, removeAddon }}>
             {children}
         </MovieContext.Provider>
     );
